@@ -1,0 +1,388 @@
+{
+  "name": "Automatizacion noticias RSS",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyHour"
+            }
+          ]
+        },
+        "feedUrl": "https://feeds.bbci.co.uk/news/technology/rss.xml"
+      },
+      "type": "n8n-nodes-base.rssFeedReadTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "af96f571-190a-45e1-a2a2-14d6d727be9b",
+      "name": "Noticias RSS"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "afb4c7be-6c53-4ea7-858e-a2afc041d048",
+              "name": "titulo",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "93f94bde-94d4-4561-acef-d86f88f5567f",
+              "name": "enlace",
+              "value": "={{ $json.link }}",
+              "type": "string"
+            },
+            {
+              "id": "64f54d66-9f58-4714-8849-6b2785b6cc48",
+              "name": "fecha_publicacion",
+              "value": "={{ $json.isoDate }}",
+              "type": "string"
+            },
+            {
+              "id": "f4320095-81b3-47af-9ef9-92ddfc5ac728",
+              "name": "descripcion",
+              "value": "={{ $json.contentSnippet || $json.content || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "7ca662ab-6077-4c41-aa9c-c645b476aa5c",
+              "name": "identificador",
+              "value": "={{ $json.guid || $json.link }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "fbe1e96a-f449-4735-8653-6f3bf2c3e271",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "noticias",
+          "mode": "list",
+          "cachedResultName": "noticias"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "identificador": "={{ $('Edit Fields').item.json.identificador }}",
+            "titulo": "={{ $('Edit Fields').item.json.titulo }}",
+            "enlace": "={{ $('Edit Fields').item.json.enlace }}",
+            "fecha_publicacion": "={{ $('Edit Fields').item.json.fecha_publicacion }}",
+            "descripcion": "={{ $('Edit Fields').item.json.descripcion }}"
+          },
+          "matchingColumns": [
+            "identificador"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "titulo",
+              "displayName": "titulo",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "enlace",
+              "displayName": "enlace",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "fecha_publicacion",
+              "displayName": "fecha_publicacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "descripcion",
+              "displayName": "descripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "identificador",
+              "displayName": "identificador",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha_registro",
+              "displayName": "fecha_registro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        896,
+        0
+      ],
+      "id": "ecfeeca6-3450-454e-8361-62249d41b22f",
+      "name": "Insert or update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "OmaHbnJxCwBkZVuj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "martin.stgmar@gmail.com",
+        "subject": "=Nueva noticia: {{ $json.titulo }}",
+        "message": "= {{ ` <h2>Noticia tecnológica</h2> <h3>${$json.titulo}</h3> <p>${$json.descripcion}</p> <p><a href=\"${$json.enlace}\">Leer noticia completa</a></p> <p>Fecha: ${$json.fecha_publicacion}</p> <hr> <p>Enviado automáticamente mediante n8n.</p> ` }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "efb3ac8f-d9a6-494e-a89e-4607e5518498",
+      "name": "Send a message",
+      "webhookId": "6502946a-3cff-4fa2-986e-515dd2831303",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "13NxywcfVnuGBPzH",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "=\n{{ `\nREPORTE AUTOMÁTICO DE NOTICIA\n================================\n\nTÍTULO:\n${$('Edit Fields').item.json.titulo}\n\nFECHA DE PUBLICACIÓN:\n${$('Edit Fields').item.json.fecha_publicacion}\n\nDESCRIPCIÓN:\n${$('Edit Fields').item.json.descripcion}\n\nENLACE:\n${$('Edit Fields').item.json.enlace}\n\n================================\nGenerado automáticamente mediante n8n.\n` }}\n",
+        "name": "={{ 'noticia_' + $('Edit Fields').item.json.identificador.split('/').pop().replace(/[^a-zA-Z0-9_-]/g, '_') + '.txt' }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "14FS9DSF5HPS8sBYHIjSAa1Cu-2pDAkjr",
+          "mode": "list",
+          "cachedResultName": "Noticias Automatizadas n8n",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/14FS9DSF5HPS8sBYHIjSAa1Cu-2pDAkjr"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        0
+      ],
+      "id": "0404ec41-005a-4851-a9fe-621e0c7e3c70",
+      "name": "Create file from text",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "M1vClZXFrIYroDsD",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nSELECT EXISTS (\n    SELECT 1\n    FROM public.noticias\n    WHERE identificador = $1\n) AS existe;\n",
+        "options": {
+          "queryReplacement": "={{ $json.identificador }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        448,
+        0
+      ],
+      "id": "5918ffeb-b718-4066-99dd-088540118f1d",
+      "name": "Verificar noticia existente",
+      "credentials": {
+        "postgres": {
+          "id": "OmaHbnJxCwBkZVuj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "2896b31b-c5d8-46e2-a455-376d24f93a27",
+              "leftValue": "={{ $json.existe }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        672,
+        0
+      ],
+      "id": "cfe77a73-f747-42bb-a164-735ba4c0e49b",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Noticias RSS": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Verificar noticia existente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert or update rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Create file from text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar noticia existente": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "47b81f90-9665-4bc0-94d2-c1304fb0c7c9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e534ee59cbf67506f5d652b4457ecd75ce9ccf2ab75a2a851b05ec7ff433658b"
+  },
+  "nodeGroups": [],
+  "id": "9NIkneL7YcQbqqjG",
+  "tags": []
+}
